@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bişgen Suno için Prompt Oluşturucu</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Theme Switcher -->
+    <div class="theme-switch-container">
+        <button class="theme-btn" data-theme="default" title="Varsayılan (Default)">🌙</button>
+        <button class="theme-btn" data-theme="light" title="Aydınlık (Light)">☀️</button>
+        <button class="theme-btn" data-theme="midnight" title="Gece Yarısı (Midnight)">🌌</button>
+    </div>
+
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>Bişgen Suno Prompt</h1>
+            <p>Suno AI için profesyonel müzik promptları oluşturun.</p>
+        </header>
+
+        <main>
+            <!-- Quick Suggestions -->
+            <div class="quick-suggestions">
+                <label>Hızlı Öneriler (Quick Suggestions)</label>
+                <div id="suggestions-container" class="tags-container">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Trending Prompts -->
+            <div class="trending-section">
+                <label>Bisgen Promptlar</label>
+                <div id="trending-container" class="trending-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <div class="controls-grid">
+                <!-- Genre Selection -->
+                <div class="control-group">
+                    <label for="genre">Müzik Türü (Genre)</label>
+                    <select id="genre">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- Sub-Genre Selection -->
+                <div class="control-group">
+                    <label for="subgenre">Alt Tür (Style)</label>
+                    <select id="subgenre" disabled>
+                        <option value="">Önce Tür Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- Mood Selection -->
+                <div class="control-group">
+                    <label for="mood">Ruh Hali (Mood)</label>
+                    <select id="mood">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- Tempo Selection -->
+                <div class="control-group">
+                    <label for="tempo">Tempo (BPM veya Tanım)</label>
+                    <input type="text" id="tempo" list="tempo-options" placeholder="Seçiniz veya yazınız...">
+                    <datalist id="tempo-options">
+                        <!-- Populated by JS -->
+                    </datalist>
+                </div>
+
+                <!-- Time Signature Selection -->
+                <div class="control-group">
+                    <label for="time-sig">Ölçü (Time Signature)</label>
+                    <select id="time-sig">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- Key Selection -->
+                <div class="control-group">
+                    <label for="key">Batı Tonları (Western Keys)</label>
+                    <select id="key">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- Makam Selection -->
+                <div class="control-group">
+                    <label for="makam">Türk Makamları</label>
+                    <select id="makam">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- Vocals Selection -->
+                <div class="control-group">
+                    <label for="vocals">Vokaller</label>
+                    <select id="vocals">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- Vocal Nuances -->
+                <div class="control-group">
+                    <label for="vocal-nuances">Vokal Detayları (Nuances)</label>
+                    <select id="vocal-nuances">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- Mix Settings -->
+                <div class="control-group">
+                    <label for="mix-settings">Mix / Mastering Ayarları</label>
+                    <select id="mix-settings">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- Instruments Selection -->
+                <div class="control-group full-width">
+                    <label>Enstrümanlar</label>
+
+                    <!-- Custom Instrument Input -->
+                    <div class="custom-instrument-group">
+                        <input type="text" id="custom-inst-input" placeholder="Özel enstrüman ekle...">
+                        <button id="add-inst-btn" type="button">Ekle</button>
+                    </div>
+
+                    <div id="instruments-container" class="tags-container">
+                        <!-- Instruments will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Playing Techniques -->
+                <div class="control-group full-width">
+                    <label>Çalım Teknikleri (Playing Techniques)</label>
+                    <div id="techniques-container" class="tags-container">
+                        <!-- Techniques will be populated here -->
+                    </div>
+                </div>
+
+                <!-- String Techniques (New) -->
+                <div class="control-group">
+                    <label for="string-techniques">Yaylı Teknikleri (String Tech.)</label>
+                    <select id="string-techniques">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- Guitar Techniques (New) -->
+                <div class="control-group">
+                    <label for="guitar-techniques">Gitar Teknikleri (Guitar Tech.)</label>
+                    <select id="guitar-techniques">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- Guitar Effects (New) -->
+                <div class="control-group">
+                    <label for="guitar-effects">Gitar Efektleri (Pedals)</label>
+                    <select id="guitar-effects">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- Era Selection (New) -->
+                <div class="control-group">
+                    <label for="era">Dönem / Era</label>
+                    <select id="era">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- Venue Selection (New) -->
+                <div class="control-group">
+                    <label for="venue">Kayıt Alanı / Venue</label>
+                    <select id="venue">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- New Features Grid -->
+                <div class="control-group">
+                    <label for="production-style">Prodüksiyon Tarzı (Production)</label>
+                    <select id="production-style">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="lead-instrument">Lead Enstrüman</label>
+                    <select id="lead-instrument">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="song-structure">Şarkı Yapısı (Structure)</label>
+                    <select id="song-structure">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="dynamic-flow">Akış (Dynamic Flow)</label>
+                    <select id="dynamic-flow">
+                        <option value="">Seçiniz...</option>
+                    </select>
+                </div>
+
+                <!-- Custom Description -->
+                <div class="control-group full-width">
+                    <label for="custom-desc">Ek Açıklama (Opsiyonel)</label>
+                    <input type="text" id="custom-desc"
+                        placeholder="Örn: Epik bir giriş ile başlasın, nakaratta yükselsin...">
+                </div>
+            </div>
+
+            <div class="result-section">
+                <div class="result-header">
+                    <h2>Profesyonel Prompt Editörü</h2>
+                    <div class="editor-tools">
+                        <button id="magic-quality-btn" class="tool-btn" title="Kalite Etiketleri Ekle">✨ Kalite</button>
+                        <button id="magic-vibe-btn" class="tool-btn" title="Rastgele Vibe">🎭 Vibe</button>
+                        <button id="shorten-btn" class="tool-btn" title="Kısalt">✂️ Kısalt</button>
+                    </div>
+                </div>
+
+                <div class="editor-container">
+                    <textarea id="editor-textarea"
+                        placeholder="Promptunuz burada oluşturulacak ve düzenlenebilecek..."></textarea>
+
+                    <div class="action-buttons">
+                        <div class="history-controls">
+                            <button id="undo-btn" class="btn-secondary" title="Geri Al (Undo)" disabled>
+                                <span class="icon">↩️</span>
+                            </button>
+                            <button id="redo-btn" class="btn-secondary" title="İleri Al (Redo)" disabled>
+                                <span class="icon">↪️</span>
+                            </button>
+                        </div>
+
+                        <button id="copy-btn" class="btn-primary main-action">
+                            <span class="icon">📋</span> Suno İçin Kopyala
+                        </button>
+
+                        <button id="clear-btn" class="btn-danger" title="Temizle">
+                            <span class="icon">🗑️</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="copy-feedback" class="feedback-msg">Kopyalandı!</div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Bişgen Tasarım © 2025</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
