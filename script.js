@@ -642,6 +642,7 @@ const productionStyleSelect = document.getElementById('production-style'); // Ne
 const leadInstrumentSelect = document.getElementById('lead-instrument'); // New
 const songStructureSelect = document.getElementById('song-structure'); // New
 const dynamicFlowSelect = document.getElementById('dynamic-flow'); // New
+const platformStyleSelect = document.getElementById('platform-style');
 const suggestionsContainer = document.getElementById('suggestions-container'); // New
 const trendingContainer = document.getElementById('trending-container'); // New
 const instrumentsContainer = document.getElementById('instruments-container');
@@ -653,12 +654,14 @@ const lyricsTextarea = document.getElementById('lyrics-textarea');
 const formatLyricsBtn = document.getElementById('format-lyrics-btn');
 const editorTextarea = document.getElementById('editor-textarea'); // New
 const copyBtn = document.getElementById('copy-btn');
+const copyPlatformLabel = document.getElementById('copy-platform-label');
 const saveFavoriteBtn = document.getElementById('save-favorite-btn');
 const clearBtn = document.getElementById('clear-btn');
 const undoBtn = document.getElementById('undo-btn'); // New
 const redoBtn = document.getElementById('redo-btn'); // New
 const copyFeedback = document.getElementById('copy-feedback');
 const charCountElement = document.getElementById('char-count');
+const platformModeStatus = document.getElementById('platform-mode-status');
 const englishModeStatus = document.getElementById('english-mode-status');
 const qualityPanel = document.getElementById('quality-panel');
 const promptHistoryList = document.getElementById('prompt-history-list');
@@ -677,6 +680,7 @@ const qualityCheckBtn = document.getElementById('quality-check-btn');
 let selectedInstruments = new Set();
 let selectedTechniques = new Set();
 let englishOutputMode = localStorage.getItem('bisgen-english-mode') === 'true';
+let outputPlatform = localStorage.getItem('bisgen-output-platform') || 'suno';
 let promptHistory = loadStoredArray('bisgen-prompt-history');
 let favoritePrompts = loadStoredArray('bisgen-favorite-prompts');
 let historySaveTimer = null;
@@ -685,6 +689,25 @@ let historyStack = [];
 let historyIndex = -1;
 let isProgrammaticChange = false; // Flag to prevent history push during restore/presets
 
+const platformProfiles = {
+    suno: {
+        label: "Suno",
+        copyLabel: "Suno İçin Kopyala"
+    },
+    udio: {
+        label: "Udio",
+        copyLabel: "Udio İçin Kopyala"
+    },
+    flowmusic: {
+        label: "Flowmusic",
+        copyLabel: "Flowmusic İçin Kopyala"
+    },
+    eita: {
+        label: "Eita",
+        copyLabel: "Eita İçin Kopyala"
+    }
+};
+
 // Initialization
 function init() {
     populateDropdowns();
@@ -692,6 +715,7 @@ function init() {
     renderTrendingPrompts(); // New
     renderPromptHistory();
     renderFavorites();
+    updatePlatformUI();
     updateEnglishModeUI();
     setupEventListeners();
     pushState(); // Initial state
@@ -1023,6 +1047,7 @@ function setupEventListeners() {
     leadInstrumentSelect.addEventListener('change', updatePrompt); // New
     songStructureSelect.addEventListener('change', updatePrompt); // New
     dynamicFlowSelect.addEventListener('change', updatePrompt); // New
+    platformStyleSelect.addEventListener('change', handlePlatformChange);
     customDescInput.addEventListener('input', updatePrompt);
     lyricsTextarea.addEventListener('input', updatePrompt);
     formatLyricsBtn.addEventListener('click', formatLyrics);
@@ -1266,6 +1291,10 @@ function clearPrompt() {
     leadInstrumentSelect.value = "";
     songStructureSelect.value = "";
     dynamicFlowSelect.value = "";
+    platformStyleSelect.value = "suno";
+    outputPlatform = "suno";
+    localStorage.setItem('bisgen-output-platform', outputPlatform);
+    updatePlatformUI();
 
     // Reset Inputs
     tempoInput.value = "";
@@ -1402,8 +1431,10 @@ function setEditorPrompt(promptText) {
 
 function updatePromptMeta() {
     const count = editorTextarea.value.length;
+    const platform = platformProfiles[outputPlatform] || platformProfiles.suno;
     charCountElement.textContent = `${count} karakter`;
     charCountElement.style.color = count > 1200 ? "#f59e0b" : "var(--text-secondary)";
+    platformModeStatus.textContent = `Platform: ${platform.label}`;
     englishModeStatus.textContent = englishOutputMode ? "Çıktı: İngilizce odaklı" : "Çıktı: Hibrit / TR destekli";
 }
 
@@ -1416,6 +1447,47 @@ function formatLyricsForPrompt(rawLyrics) {
         .trim();
 }
 
+function formatPromptForPlatform(parts, lyrics) {
+    const normalizedParts = parts.map(normalizeForOutput).filter(Boolean);
+    const styleLine = normalizedParts.join(", ");
+    const formattedLyrics = formatLyricsForPrompt(lyrics);
+
+    if (outputPlatform === "udio") {
+        return [
+            "STYLE PROMPT:",
+            styleLine,
+            "",
+            "SONG DIRECTION:",
+            "Keep the arrangement clear, emotionally focused, and ready for full-song generation.",
+            formattedLyrics ? "\nLYRICS:\n" + formattedLyrics : ""
+        ].filter(Boolean).join("\n");
+    }
+
+    if (outputPlatform === "flowmusic") {
+        return [
+            "Flowmusic Prompt",
+            `Style: ${styleLine}`,
+            "Flow: polished intro, clear main section, memorable chorus lift, clean ending",
+            "Production: balanced mix, strong musical identity, no muddy low end",
+            formattedLyrics ? `Lyrics:\n${formattedLyrics}` : ""
+        ].filter(Boolean).join("\n");
+    }
+
+    if (outputPlatform === "eita") {
+        return [
+            "Eita Music Brief",
+            `Genre / Style: ${styleLine}`,
+            "Performance: expressive, natural, coherent arrangement",
+            "Output Goal: make it musical, catchy, and production-ready",
+            formattedLyrics ? `Lyrics:\n${formattedLyrics}` : ""
+        ].filter(Boolean).join("\n");
+    }
+
+    const sunoParts = [...normalizedParts];
+    if (formattedLyrics) sunoParts.push("Lyrics:\n" + formattedLyrics);
+    return sunoParts.join(", ");
+}
+
 // Update Prompt Logic
 function updatePrompt() {
     const parts = [];
@@ -1425,8 +1497,8 @@ function updatePrompt() {
     const subgenre = subgenreSelect.value;
 
     if (subgenre === "Ankara Oyun Havası") {
-        const specialPrompt = "Fast-paced Turkish gazino style blends Ankara oyun ritmi, driving darbuka, punchy clarinet and reverb-soaked electric bağlama solo, Layers of kanun fills add melodic sparkle, Live pavyon ambiance with rakı clinks, smoky laughter, and crowd shouts";
-        setEditorPrompt(specialPrompt);
+        const specialParts = ["Fast-paced Turkish gazino style blends Ankara oyun ritmi", "Driving darbuka", "Punchy clarinet", "Reverb-soaked electric bağlama solo", "Layers of kanun fills add melodic sparkle", "Live pavyon ambiance with rakı clinks, smoky laughter, and crowd shouts"];
+        setEditorPrompt(formatPromptForPlatform(specialParts, lyricsTextarea.value));
         return;
     }
 
@@ -1525,11 +1597,7 @@ function updatePrompt() {
     const venue = venueSelect.value;
     if (venue) parts.push("Recorded at " + venue);
 
-    // Join and Display
-    const lyrics = formatLyricsForPrompt(lyricsTextarea.value);
-    if (lyrics) parts.push("Lyrics:\n" + lyrics);
-
-    setEditorPrompt(parts.map(normalizeForOutput).join(", "));
+    setEditorPrompt(formatPromptForPlatform(parts, lyricsTextarea.value));
 }
 
 // Professional Tool: Magic Quality
@@ -1616,6 +1684,7 @@ function saveState() {
         leadInstrument: leadInstrumentSelect.value,
         songStructure: songStructureSelect.value,
         dynamicFlow: dynamicFlowSelect.value,
+        outputPlatform,
         customDesc: customDescInput.value,
         instruments: Array.from(selectedInstruments),
         techniques: Array.from(selectedTechniques),
@@ -1685,6 +1754,9 @@ function applyStateToDOM(state) {
     leadInstrumentSelect.value = state.leadInstrument || "";
     songStructureSelect.value = state.songStructure || "";
     dynamicFlowSelect.value = state.dynamicFlow || "";
+    outputPlatform = state.outputPlatform || "suno";
+    platformStyleSelect.value = outputPlatform;
+    updatePlatformUI();
     customDescInput.value = state.customDesc || "";
     lyricsTextarea.value = state.lyrics || "";
     englishOutputMode = Boolean(state.englishOutputMode);
@@ -1898,6 +1970,24 @@ function clearPromptHistory() {
     promptHistory = [];
     saveStoredArray('bisgen-prompt-history', promptHistory);
     renderPromptHistory();
+}
+
+function handlePlatformChange() {
+    outputPlatform = platformStyleSelect.value || "suno";
+    localStorage.setItem('bisgen-output-platform', outputPlatform);
+    updatePlatformUI();
+    updatePrompt();
+    if (!isProgrammaticChange) pushState();
+}
+
+function updatePlatformUI() {
+    if (!platformProfiles[outputPlatform]) outputPlatform = "suno";
+    platformStyleSelect.value = outputPlatform;
+    const platform = platformProfiles[outputPlatform];
+    copyPlatformLabel.textContent = platform.copyLabel;
+    if (platformModeStatus) {
+        platformModeStatus.textContent = `Platform: ${platform.label}`;
+    }
 }
 
 function toggleEnglishMode() {

@@ -222,6 +222,16 @@
                     </select>
                 </div>
 
+                <div class="control-group">
+                    <label for="platform-style">Platform Çıktısı</label>
+                    <select id="platform-style">
+                        <option value="suno">Suno Style (Varsayılan)</option>
+                        <option value="udio">Udio Style</option>
+                        <option value="flowmusic">Flowmusic Style</option>
+                        <option value="eita">Eita Style</option>
+                    </select>
+                </div>
+
                 <!-- Custom Description -->
                 <div class="control-group full-width">
                     <label for="custom-desc">Ek Açıklama (Opsiyonel)</label>
@@ -269,7 +279,7 @@
                         </div>
 
                         <button id="copy-btn" class="btn-primary main-action">
-                            <span class="icon">📋</span> Suno İçin Kopyala
+                            <span class="icon">📋</span> <span id="copy-platform-label">Suno İçin Kopyala</span>
                         </button>
 
                         <button id="save-favorite-btn" class="btn-secondary" title="Favorilere Ekle">
@@ -283,6 +293,7 @@
                 </div>
                 <div class="editor-meta">
                     <span id="char-count">0 karakter</span>
+                    <span id="platform-mode-status">Platform: Suno</span>
                     <span id="english-mode-status">Çıktı: Hibrit / TR destekli</span>
                 </div>
                 <div id="quality-panel" class="quality-panel" aria-live="polite">
