@@ -245,9 +245,49 @@
                         <label for="lyrics-textarea">Şarkı Sözü / Lyrics (Opsiyonel)</label>
                         <button id="format-lyrics-btn" class="mini-btn" type="button">🎼 Formatla</button>
                     </div>
+                    <div class="lyrics-tools">
+                        <div class="lyrics-tool">
+                            <label for="lyrics-traffic">Trafik</label>
+                            <select id="lyrics-traffic">
+                                <option value="">Şablon seç...</option>
+                                <option value="pop">Intro / Verse / Chorus / Bridge / Outro</option>
+                                <option value="rap">Intro / Verse / Hook / Verse / Outro</option>
+                                <option value="cinematic">Intro / Build / Climax / Outro</option>
+                                <option value="instrumental">Intro / Instrumental / Solo / Fade Out</option>
+                                <option value="short">Verse / Chorus / Outro</option>
+                            </select>
+                            <button id="insert-traffic-btn" class="mini-btn" type="button">Ekle</button>
+                        </div>
+
+                        <div class="lyrics-tool">
+                            <label for="lyrics-element">Element</label>
+                            <select id="lyrics-element">
+                                <option value="">Element seç...</option>
+                                <option value="[Intro]">Intro</option>
+                                <option value="[Verse]">Verse</option>
+                                <option value="[Pre-Chorus]">Pre-Chorus</option>
+                                <option value="[Chorus]">Chorus</option>
+                                <option value="[Hook]">Hook</option>
+                                <option value="[Bridge]">Bridge</option>
+                                <option value="[Drop]">Drop</option>
+                                <option value="[Instrumental Break]">Instrumental Break</option>
+                                <option value="[Solo]">Solo</option>
+                                <option value="[Outro]">Outro</option>
+                                <option value="[Fade Out]">Fade Out</option>
+                            </select>
+                            <button id="insert-element-btn" class="mini-btn" type="button">Ekle</button>
+                        </div>
+
+                        <div class="lyrics-tool lyrics-tool-wide">
+                            <label for="lyrics-instrument-input">Lyrics'e Enstrüman Talimatı</label>
+                            <input type="text" id="lyrics-instrument-input"
+                                placeholder="Örn: bağlama solo, ney taksimi, electric guitar solo">
+                            <button id="insert-lyrics-instrument-btn" class="mini-btn" type="button">Ekle</button>
+                        </div>
+                    </div>
                     <textarea id="lyrics-textarea"
                         placeholder="[Verse]\nBirinci bölüm sözleri...\n\n[Chorus]\nNakarat sözleri..."></textarea>
-                    <small class="helper-text">İstersen Verse / Chorus / Bridge / Outro bloklarıyla Suno'ya hazır söz ekleyebilirsin.</small>
+                    <small class="helper-text">Trafik ve elementler, imlecin olduğu yere Suno'nun anlayacağı köşeli parantez formatıyla eklenir.</small>
                 </div>
             </div>
 

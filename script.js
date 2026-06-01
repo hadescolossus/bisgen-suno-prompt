@@ -652,6 +652,12 @@ const addInstBtn = document.getElementById('add-inst-btn');
 const customDescInput = document.getElementById('custom-desc');
 const lyricsTextarea = document.getElementById('lyrics-textarea');
 const formatLyricsBtn = document.getElementById('format-lyrics-btn');
+const lyricsTrafficSelect = document.getElementById('lyrics-traffic');
+const insertTrafficBtn = document.getElementById('insert-traffic-btn');
+const lyricsElementSelect = document.getElementById('lyrics-element');
+const insertElementBtn = document.getElementById('insert-element-btn');
+const lyricsInstrumentInput = document.getElementById('lyrics-instrument-input');
+const insertLyricsInstrumentBtn = document.getElementById('insert-lyrics-instrument-btn');
 const editorTextarea = document.getElementById('editor-textarea'); // New
 const copyBtn = document.getElementById('copy-btn');
 const copyPlatformLabel = document.getElementById('copy-platform-label');
@@ -706,6 +712,14 @@ const platformProfiles = {
         label: "Eita",
         copyLabel: "Eita İçin Kopyala"
     }
+};
+
+const lyricsTrafficTemplates = {
+    pop: `[Intro]\n\n[Verse]\n\n[Pre-Chorus]\n\n[Chorus]\n\n[Verse 2]\n\n[Chorus]\n\n[Bridge]\n\n[Final Chorus]\n\n[Outro]`,
+    rap: `[Intro]\n\n[Verse]\n\n[Hook]\n\n[Verse 2]\n\n[Hook]\n\n[Bridge]\n\n[Outro]`,
+    cinematic: `[Intro]\n\n[Build]\n\n[Verse]\n\n[Chorus]\n\n[Climax]\n\n[Outro]\n\n[Fade Out]`,
+    instrumental: `[Intro]\n\n[Instrumental Break]\n\n[Solo]\n\n[Build]\n\n[Final Instrumental]\n\n[Outro]\n\n[Fade Out]`,
+    short: `[Verse]\n\n[Chorus]\n\n[Outro]`
 };
 
 // Initialization
@@ -1051,6 +1065,12 @@ function setupEventListeners() {
     customDescInput.addEventListener('input', updatePrompt);
     lyricsTextarea.addEventListener('input', updatePrompt);
     formatLyricsBtn.addEventListener('click', formatLyrics);
+    insertTrafficBtn.addEventListener('click', insertSelectedTraffic);
+    insertElementBtn.addEventListener('click', insertSelectedLyricsElement);
+    insertLyricsInstrumentBtn.addEventListener('click', insertLyricsInstrumentCue);
+    lyricsInstrumentInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') insertLyricsInstrumentCue();
+    });
 
     // Professional Tools Events
     enhanceBtn.addEventListener('click', enhancePrompt);
@@ -1301,6 +1321,9 @@ function clearPrompt() {
     customInstInput.value = "";
     customDescInput.value = "";
     lyricsTextarea.value = "";
+    lyricsTrafficSelect.value = "";
+    lyricsElementSelect.value = "";
+    lyricsInstrumentInput.value = "";
 
     // Reset Sets
     selectedInstruments.clear();
@@ -2006,6 +2029,45 @@ function updateEnglishModeUI() {
     }
 }
 
+function insertTextAtLyricsCursor(text) {
+    const block = text.trim();
+    if (!block) return;
+
+    const start = lyricsTextarea.selectionStart ?? lyricsTextarea.value.length;
+    const end = lyricsTextarea.selectionEnd ?? start;
+    const before = lyricsTextarea.value.slice(0, start);
+    const after = lyricsTextarea.value.slice(end);
+    const prefix = before.trim() && !before.endsWith('\n\n') ? (before.endsWith('\n') ? '\n' : '\n\n') : '';
+    const suffix = after.trim() && !after.startsWith('\n\n') ? (after.startsWith('\n') ? '\n' : '\n\n') : '';
+
+    lyricsTextarea.value = before + prefix + block + suffix + after;
+    const cursorPosition = (before + prefix + block).length;
+    lyricsTextarea.focus();
+    lyricsTextarea.setSelectionRange(cursorPosition, cursorPosition);
+    updatePrompt();
+    pushState();
+}
+
+function insertSelectedTraffic() {
+    const template = lyricsTrafficTemplates[lyricsTrafficSelect.value];
+    if (!template) return;
+    insertTextAtLyricsCursor(template);
+}
+
+function insertSelectedLyricsElement() {
+    const element = lyricsElementSelect.value;
+    if (!element) return;
+    const body = element === "[Fade Out]" ? element : `${element}\n`;
+    insertTextAtLyricsCursor(body);
+}
+
+function insertLyricsInstrumentCue() {
+    const instrument = lyricsInstrumentInput.value.trim();
+    if (!instrument) return;
+    insertTextAtLyricsCursor(`[Instrumental: ${instrument}]`);
+    lyricsInstrumentInput.value = "";
+}
+
 function formatLyrics() {
     const raw = lyricsTextarea.value.trim();
     if (!raw) {
@@ -2013,10 +2075,14 @@ function formatLyrics() {
     } else {
         lyricsTextarea.value = raw
             .replace(/\r\n/g, '\n')
-            .replace(/\bverse\b/gi, '[Verse]')
-            .replace(/\bchorus\b/gi, '[Chorus]')
-            .replace(/\bbridge\b/gi, '[Bridge]')
-            .replace(/\boutro\b/gi, '[Outro]')
+            .replace(/^\s*\[?\s*intro\s*\]?\s*:?\s*$/gmi, '[Intro]')
+            .replace(/^\s*\[?\s*verse\s*(\d+)?\s*\]?\s*:?\s*$/gmi, (_, number) => number ? `[Verse ${number}]` : '[Verse]')
+            .replace(/^\s*\[?\s*pre[- ]?chorus\s*\]?\s*:?\s*$/gmi, '[Pre-Chorus]')
+            .replace(/^\s*\[?\s*chorus\s*\]?\s*:?\s*$/gmi, '[Chorus]')
+            .replace(/^\s*\[?\s*hook\s*\]?\s*:?\s*$/gmi, '[Hook]')
+            .replace(/^\s*\[?\s*bridge\s*\]?\s*:?\s*$/gmi, '[Bridge]')
+            .replace(/^\s*\[?\s*outro\s*\]?\s*:?\s*$/gmi, '[Outro]')
+            .replace(/^\s*\[?\s*fade[- ]?out\s*\]?\s*:?\s*$/gmi, '[Fade Out]')
             .replace(/\n{3,}/g, '\n\n');
     }
     updatePrompt();

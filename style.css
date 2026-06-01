@@ -421,6 +421,43 @@ select:disabled {
     border-color: transparent;
 }
 
+.lyrics-tools {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+}
+
+.lyrics-tool {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+    align-items: end;
+    padding: 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.lyrics-tool label {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+    font-size: 0.78rem;
+}
+
+.lyrics-tool select,
+.lyrics-tool input {
+    width: 100%;
+    min-height: 38px;
+    padding: 0.55rem 0.7rem;
+    border-radius: 8px;
+}
+
+.lyrics-tool-wide {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr auto;
+}
+
 .lyrics-builder textarea {
     width: 100%;
     min-height: 145px;
@@ -884,6 +921,15 @@ footer {
 
     .tool-btn {
         flex: 1 1 30%;
+    }
+
+    .lyrics-tools,
+    .lyrics-tool {
+        grid-template-columns: 1fr;
+    }
+
+    .lyrics-tool-wide {
+        grid-column: auto;
     }
 
     .feedback-msg {
