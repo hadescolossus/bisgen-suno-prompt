@@ -3,6 +3,7 @@ const sunoData = {
     genres: {
         "Pop": ["Synth-Pop", "Dream Pop", "K-Pop", "Indie Pop", "Electropop", "City Pop", "Baroque Pop", "Art Pop", "Hyperpop", "Bubblegum Pop"],
         "Rock": ["Alternative Rock", "Indie Rock", "Punk Rock", "Hard Rock", "Psychedelic Rock", "Post-Rock", "Progressive Rock", "Grunge", "Shoegaze", "Stoner Rock", "Garage Rock"],
+        "Blues": ["Delta Blues", "Chicago Blues", "Texas Blues", "Electric Blues", "Acoustic Blues", "Blues Rock", "Soul Blues", "Jump Blues", "Country Blues", "Modern Blues"],
         "Electronic": ["House", "Techno", "Trance", "Dubstep", "Drum & Bass", "Ambient", "Lo-Fi", "Synthwave", "IDM", "Phonk", "Hardstyle", "Gabber", "Eurobeat", "Vaporwave", "Future Bass", "Glitchcore"],
         "Hip Hop & Rap": ["Trap", "Boom Bap", "Drill", "Lo-Fi Hip Hop", "Jazz Rap", "Gangsta Rap", "Cloud Rap", "Emo Rap", "Old School"],
         "R&B & Soul": ["Neo-Soul", "Contemporary R&B", "Funk", "Motown", "Gospel", "Soul", "Disco", "Quiet Storm"],
@@ -227,6 +228,14 @@ const quickPresets = {
         mood: "Powerful (Güçlü)",
         instruments: ["Electric Guitar", "Baglama", "Drums", "Bass"],
         icon: "🎸"
+    },
+    "Blues Rock": {
+        genre: "Blues",
+        subgenre: "Blues Rock",
+        mood: "Melancholic (Melankolik)",
+        instruments: ["Electric Guitar", "Bass", "Drums", "Harmonica"],
+        tempo: "Medium (90-110 BPM)",
+        icon: "🎷"
     },
     "Türkçe Rap": {
         genre: "Turkish Music",
@@ -640,21 +649,37 @@ const techniquesContainer = document.getElementById('techniques-container');
 const customInstInput = document.getElementById('custom-inst-input');
 const addInstBtn = document.getElementById('add-inst-btn');
 const customDescInput = document.getElementById('custom-desc');
+const lyricsTextarea = document.getElementById('lyrics-textarea');
+const formatLyricsBtn = document.getElementById('format-lyrics-btn');
 const editorTextarea = document.getElementById('editor-textarea'); // New
 const copyBtn = document.getElementById('copy-btn');
+const saveFavoriteBtn = document.getElementById('save-favorite-btn');
 const clearBtn = document.getElementById('clear-btn');
 const undoBtn = document.getElementById('undo-btn'); // New
 const redoBtn = document.getElementById('redo-btn'); // New
 const copyFeedback = document.getElementById('copy-feedback');
+const charCountElement = document.getElementById('char-count');
+const englishModeStatus = document.getElementById('english-mode-status');
+const qualityPanel = document.getElementById('quality-panel');
+const promptHistoryList = document.getElementById('prompt-history-list');
+const favoritesList = document.getElementById('favorites-list');
+const clearHistoryBtn = document.getElementById('clear-history-btn');
 
 // Magic Tool Buttons
+const enhanceBtn = document.getElementById('enhance-btn');
 const magicQualityBtn = document.getElementById('magic-quality-btn');
 const magicVibeBtn = document.getElementById('magic-vibe-btn');
 const shortenBtn = document.getElementById('shorten-btn');
+const englishModeBtn = document.getElementById('english-mode-btn');
+const qualityCheckBtn = document.getElementById('quality-check-btn');
 
 // State
 let selectedInstruments = new Set();
 let selectedTechniques = new Set();
+let englishOutputMode = localStorage.getItem('bisgen-english-mode') === 'true';
+let promptHistory = loadStoredArray('bisgen-prompt-history');
+let favoritePrompts = loadStoredArray('bisgen-favorite-prompts');
+let historySaveTimer = null;
 // History State
 let historyStack = [];
 let historyIndex = -1;
@@ -665,6 +690,9 @@ function init() {
     populateDropdowns();
     renderQuickSuggestions();
     renderTrendingPrompts(); // New
+    renderPromptHistory();
+    renderFavorites();
+    updateEnglishModeUI();
     setupEventListeners();
     pushState(); // Initial state
     updatePrompt();
@@ -996,18 +1024,22 @@ function setupEventListeners() {
     songStructureSelect.addEventListener('change', updatePrompt); // New
     dynamicFlowSelect.addEventListener('change', updatePrompt); // New
     customDescInput.addEventListener('input', updatePrompt);
+    lyricsTextarea.addEventListener('input', updatePrompt);
+    formatLyricsBtn.addEventListener('click', formatLyrics);
 
     // Professional Tools Events
+    enhanceBtn.addEventListener('click', enhancePrompt);
     magicQualityBtn.addEventListener('click', addQualityTags);
     magicVibeBtn.addEventListener('click', randomizeVibe);
     shortenBtn.addEventListener('click', shortenPrompt);
+    englishModeBtn.addEventListener('click', toggleEnglishMode);
+    qualityCheckBtn.addEventListener('click', runQualityCheck);
 
     // Manual Edit Event
     editorTextarea.addEventListener('input', () => {
-        // We don't call updatePrompt here to allow manual editing
-        // but we might want to track history
         if (!isProgrammaticChange) {
-            // debounced history push could go here
+            updatePromptMeta();
+            schedulePromptHistorySave();
         }
     });
 
@@ -1018,10 +1050,11 @@ function setupEventListeners() {
     });
 
     copyBtn.addEventListener('click', copyToClipboard);
+    saveFavoriteBtn.addEventListener('click', saveCurrentFavorite);
     clearBtn.addEventListener('click', clearPrompt);
     undoBtn.addEventListener('click', undo); // New
     redoBtn.addEventListener('click', redo); // New
-    document.getElementById('enhance-btn').addEventListener('click', enhancePrompt);
+    clearHistoryBtn.addEventListener('click', clearPromptHistory);
 
     // History Tracking Events
     const inputs = [
@@ -1029,7 +1062,7 @@ function setupEventListeners() {
         vocalsSelect, vocalNuancesSelect, mixSettingsSelect, productionStyleSelect,
         leadInstrumentSelect, songStructureSelect, dynamicFlowSelect,
         eraSelect, venueSelect,
-        tempoInput, customDescInput
+        tempoInput, customDescInput, lyricsTextarea
     ];
 
     inputs.forEach(input => {
@@ -1058,6 +1091,9 @@ function setTheme(theme) {
     if (theme !== 'default') {
         document.body.classList.add(`theme-${theme}`);
     }
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.theme === theme);
+    });
     localStorage.setItem('bisgen-theme', theme);
 }
 
@@ -1073,6 +1109,7 @@ function enhancePrompt() {
     const genreDefaults = {
         "Pop": { moods: ["Happy (Mutlu)", "Energetic (Enerjik)", "Uplifting (Yükseltici)"], instruments: ["Synthesizer", "Drums", "Bass"] },
         "Rock": { moods: ["Energetic (Enerjik)", "Powerful (Güçlü)", "Aggressive (Agresif)"], instruments: ["Electric Guitar", "Drums", "Bass"] },
+        "Blues": { moods: ["Melancholic (Melankolik)", "Nostalgic (Nostaljik)", "Sentimental (Duygusal)"], instruments: ["Electric Guitar", "Bass", "Drums"] },
         "Electronic": { moods: ["Energetic (Enerjik)", "Dreamy (Rüya Gibi)", "Intense (Yoğun)"], instruments: ["Synthesizer", "Drum Machine", "Bass"] },
         "Hip Hop & Rap": { moods: ["Chill (Sakin)", "Aggressive (Agresif)", "Groovy (Hareketli)"], instruments: ["808 Bass", "Synthesizer", "Drums"] },
         "Jazz": { moods: ["Relaxing (Rahatlatıcı)", "Chill (Sakin)", "Playful (Oyunbaz)"], instruments: ["Saxophone", "Piano", "Bass"] },
@@ -1086,6 +1123,7 @@ function enhancePrompt() {
     const genreFlavorText = {
         "Pop": ["Catchy Hook", "Radio Ready", "Chart Topping", "Memorable Melody", "Pristine Production"],
         "Rock": ["Distorted Riffs", "Heavy Drums", "Amp Saturation", "Guitar Solo", "Anthemic Chorus"],
+        "Blues": ["Soulful Guitar Licks", "12-Bar Feel", "Smoky Club Tone", "Expressive Bends", "Vintage Tube Amp"],
         "Electronic": ["Pulsating Bass", "Hypnotic Synth", "Drop", "Build Up", "Immersive Soundscape"],
         "Hip Hop & Rap": ["Heavy 808s", "Tight Flow", "Sampled Loops", "Hard Hitting Kicks"],
         "Jazz": ["Improvisation", "Smooth Brass", "Complex Harmonies", "Walking Bassline"],
@@ -1194,9 +1232,10 @@ function enhancePrompt() {
     }
 
     // 7. Visual Feedback
-    const btn = document.getElementById('enhance-btn');
-    btn.classList.add('sparkle');
-    setTimeout(() => btn.classList.remove('sparkle'), 500);
+    if (enhanceBtn) {
+        enhanceBtn.classList.add('sparkle');
+        setTimeout(() => enhanceBtn.classList.remove('sparkle'), 500);
+    }
 
     updatePrompt();
     isProgrammaticChange = false;
@@ -1232,6 +1271,7 @@ function clearPrompt() {
     tempoInput.value = "";
     customInstInput.value = "";
     customDescInput.value = "";
+    lyricsTextarea.value = "";
 
     // Reset Sets
     selectedInstruments.clear();
@@ -1295,6 +1335,7 @@ function handleGenreChange() {
         subgenreSelect.disabled = true;
     }
     updatePrompt();
+    if (!isProgrammaticChange) pushState();
 }
 
 // Toggle Instrument Selection
@@ -1322,6 +1363,57 @@ function toggleTechnique(tagElement) {
         tagElement.classList.add('selected');
     }
     updatePrompt();
+    if (!isProgrammaticChange) pushState();
+}
+
+function cleanOutputValue(value) {
+    return value
+        .replace(/\s*\([^)]*\)/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function normalizeForOutput(part) {
+    if (!englishOutputMode || !part) return part;
+
+    return part
+        .split('\n')
+        .map(line => cleanOutputValue(line)
+            .replace(/Türkçe Rap/g, 'Turkish Rap')
+            .replace(/Türk Pop/g, 'Turkish Pop')
+            .replace(/Arabesque/g, 'Arabesque')
+            .replace(/Ankara Oyun Havası/g, 'Ankara dance music')
+            .replace(/Karadeniz/g, 'Black Sea Turkish folk pop')
+            .replace(/Makam /g, 'Turkish maqam ')
+            .replace(/Ölçü/g, 'Time Signature'))
+        .join('\n');
+}
+
+function setEditorPrompt(promptText) {
+    const wasProgrammatic = isProgrammaticChange;
+    isProgrammaticChange = true;
+    editorTextarea.value = promptText || "";
+    isProgrammaticChange = wasProgrammatic;
+
+    editorTextarea.style.color = promptText ? "var(--text-primary)" : "rgba(255,255,255,0.3)";
+    updatePromptMeta();
+    if (!wasProgrammatic) schedulePromptHistorySave();
+}
+
+function updatePromptMeta() {
+    const count = editorTextarea.value.length;
+    charCountElement.textContent = `${count} karakter`;
+    charCountElement.style.color = count > 1200 ? "#f59e0b" : "var(--text-secondary)";
+    englishModeStatus.textContent = englishOutputMode ? "Çıktı: İngilizce odaklı" : "Çıktı: Hibrit / TR destekli";
+}
+
+function formatLyricsForPrompt(rawLyrics) {
+    const cleaned = rawLyrics.trim();
+    if (!cleaned) return "";
+    return cleaned
+        .replace(/\r\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
 }
 
 // Update Prompt Logic
@@ -1334,8 +1426,7 @@ function updatePrompt() {
 
     if (subgenre === "Ankara Oyun Havası") {
         const specialPrompt = "Fast-paced Turkish gazino style blends Ankara oyun ritmi, driving darbuka, punchy clarinet and reverb-soaked electric bağlama solo, Layers of kanun fills add melodic sparkle, Live pavyon ambiance with rakı clinks, smoky laughter, and crowd shouts";
-        generatedPromptElement.textContent = specialPrompt;
-        generatedPromptElement.style.opacity = "1";
+        setEditorPrompt(specialPrompt);
         return;
     }
 
@@ -1435,17 +1526,10 @@ function updatePrompt() {
     if (venue) parts.push("Recorded at " + venue);
 
     // Join and Display
-    const promptText = parts.join(", ");
-    isProgrammaticChange = true;
-    editorTextarea.value = promptText || "";
-    isProgrammaticChange = false;
+    const lyrics = formatLyricsForPrompt(lyricsTextarea.value);
+    if (lyrics) parts.push("Lyrics:\n" + lyrics);
 
-    // Visual feedback if empty
-    if (!promptText) {
-        editorTextarea.style.color = "rgba(255,255,255,0.3)";
-    } else {
-        editorTextarea.style.color = "var(--text-primary)";
-    }
+    setEditorPrompt(parts.map(normalizeForOutput).join(", "));
 }
 
 // Professional Tool: Magic Quality
@@ -1501,10 +1585,11 @@ function shortenPrompt() {
 
 // Copy to Clipboard
 function copyToClipboard() {
-    const text = generatedPromptElement.textContent;
-    if (!text || text === "Prompt oluşturmak için seçenekleri kullanın...") return;
+    const text = editorTextarea.value.trim();
+    if (!text) return;
 
     navigator.clipboard.writeText(text).then(() => {
+        savePromptToHistory(text);
         copyFeedback.classList.add('show');
         setTimeout(() => {
             copyFeedback.classList.remove('show');
@@ -1533,14 +1618,15 @@ function saveState() {
         dynamicFlow: dynamicFlowSelect.value,
         customDesc: customDescInput.value,
         instruments: Array.from(selectedInstruments),
-        customDesc: customDescInput.value,
-        instruments: Array.from(selectedInstruments),
         techniques: Array.from(selectedTechniques),
         stringTechniques: stringTechniquesSelect.value,
         guitarTechniques: guitarTechniquesSelect.value,
         guitarEffects: guitarEffectsSelect.value,
         era: eraSelect.value,
-        venue: venueSelect.value
+        venue: venueSelect.value,
+        lyrics: lyricsTextarea.value,
+        editorText: editorTextarea.value,
+        englishOutputMode
     };
 }
 
@@ -1600,6 +1686,9 @@ function applyStateToDOM(state) {
     songStructureSelect.value = state.songStructure || "";
     dynamicFlowSelect.value = state.dynamicFlow || "";
     customDescInput.value = state.customDesc || "";
+    lyricsTextarea.value = state.lyrics || "";
+    englishOutputMode = Boolean(state.englishOutputMode);
+    updateEnglishModeUI();
 
     // Restore Sets
     selectedInstruments.clear();
@@ -1631,6 +1720,9 @@ function applyStateToDOM(state) {
     });
 
     updatePrompt();
+    if (state.editorText) {
+        setEditorPrompt(state.editorText);
+    }
     isProgrammaticChange = false;
     updateUndoRedoButtons();
 }
@@ -1656,6 +1748,240 @@ function redo() {
 function updateUndoRedoButtons() {
     undoBtn.disabled = historyIndex <= 0;
     redoBtn.disabled = historyIndex >= historyStack.length - 1;
+}
+
+function loadStoredArray(key) {
+    try {
+        const value = JSON.parse(localStorage.getItem(key) || '[]');
+        return Array.isArray(value) ? value : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function saveStoredArray(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+}
+
+function schedulePromptHistorySave() {
+    clearTimeout(historySaveTimer);
+    historySaveTimer = setTimeout(() => {
+        savePromptToHistory(editorTextarea.value.trim());
+    }, 900);
+}
+
+function savePromptToHistory(text) {
+    const promptText = text.trim();
+    if (promptText.length < 12) return;
+
+    promptHistory = promptHistory.filter(item => item.text !== promptText);
+    promptHistory.unshift({
+        id: Date.now(),
+        title: createPromptTitle(promptText),
+        text: promptText,
+        createdAt: new Date().toISOString()
+    });
+    promptHistory = promptHistory.slice(0, 20);
+    saveStoredArray('bisgen-prompt-history', promptHistory);
+    renderPromptHistory();
+}
+
+function createPromptTitle(text) {
+    const firstPart = text.split(',')[0] || text;
+    return firstPart.replace(/\n/g, ' ').slice(0, 42) || 'Yeni prompt';
+}
+
+function renderPromptHistory() {
+    renderLibraryList(promptHistoryList, promptHistory, {
+        emptyText: 'Henüz geçmiş yok.',
+        includeDelete: false
+    });
+}
+
+function renderFavorites() {
+    renderLibraryList(favoritesList, favoritePrompts, {
+        emptyText: 'Henüz favori yok.',
+        includeDelete: true
+    });
+}
+
+function renderLibraryList(container, items, options) {
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!items.length) {
+        container.classList.add('empty-state');
+        container.textContent = options.emptyText;
+        return;
+    }
+
+    container.classList.remove('empty-state');
+    items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'library-item';
+
+        const content = document.createElement('div');
+        const title = document.createElement('div');
+        title.className = 'library-title';
+        title.textContent = item.title || createPromptTitle(item.text);
+
+        const preview = document.createElement('div');
+        preview.className = 'library-preview';
+        preview.textContent = item.text.slice(0, 150) + (item.text.length > 150 ? '...' : '');
+
+        content.appendChild(title);
+        content.appendChild(preview);
+
+        const actions = document.createElement('div');
+        actions.className = 'library-actions';
+
+        const loadBtn = document.createElement('button');
+        loadBtn.className = 'icon-btn';
+        loadBtn.type = 'button';
+        loadBtn.title = 'Editöre al';
+        loadBtn.textContent = '↩';
+        loadBtn.addEventListener('click', () => setEditorPrompt(item.text));
+        actions.appendChild(loadBtn);
+
+        const copyItemBtn = document.createElement('button');
+        copyItemBtn.className = 'icon-btn';
+        copyItemBtn.type = 'button';
+        copyItemBtn.title = 'Kopyala';
+        copyItemBtn.textContent = '📋';
+        copyItemBtn.addEventListener('click', () => navigator.clipboard.writeText(item.text));
+        actions.appendChild(copyItemBtn);
+
+        if (options.includeDelete) {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'icon-btn';
+            deleteBtn.type = 'button';
+            deleteBtn.title = 'Sil';
+            deleteBtn.textContent = '×';
+            deleteBtn.addEventListener('click', () => deleteFavorite(item.id));
+            actions.appendChild(deleteBtn);
+        }
+
+        row.appendChild(content);
+        row.appendChild(actions);
+        container.appendChild(row);
+    });
+}
+
+function saveCurrentFavorite() {
+    const text = editorTextarea.value.trim();
+    if (!text) return;
+
+    const title = window.prompt('Favori adı:', createPromptTitle(text));
+    if (title === null) return;
+
+    favoritePrompts = favoritePrompts.filter(item => item.text !== text);
+    favoritePrompts.unshift({
+        id: Date.now(),
+        title: title.trim() || createPromptTitle(text),
+        text,
+        createdAt: new Date().toISOString()
+    });
+    favoritePrompts = favoritePrompts.slice(0, 40);
+    saveStoredArray('bisgen-favorite-prompts', favoritePrompts);
+    renderFavorites();
+    saveFavoriteBtn.classList.add('sparkle');
+    setTimeout(() => saveFavoriteBtn.classList.remove('sparkle'), 500);
+}
+
+function deleteFavorite(id) {
+    favoritePrompts = favoritePrompts.filter(item => item.id !== id);
+    saveStoredArray('bisgen-favorite-prompts', favoritePrompts);
+    renderFavorites();
+}
+
+function clearPromptHistory() {
+    promptHistory = [];
+    saveStoredArray('bisgen-prompt-history', promptHistory);
+    renderPromptHistory();
+}
+
+function toggleEnglishMode() {
+    englishOutputMode = !englishOutputMode;
+    localStorage.setItem('bisgen-english-mode', String(englishOutputMode));
+    updateEnglishModeUI();
+    updatePrompt();
+    pushState();
+}
+
+function updateEnglishModeUI() {
+    englishModeBtn.classList.toggle('active', englishOutputMode);
+    englishModeBtn.textContent = englishOutputMode ? '🌍 EN Açık' : '🌍 EN';
+    if (englishModeStatus) {
+        englishModeStatus.textContent = englishOutputMode ? 'Çıktı: İngilizce odaklı' : 'Çıktı: Hibrit / TR destekli';
+    }
+}
+
+function formatLyrics() {
+    const raw = lyricsTextarea.value.trim();
+    if (!raw) {
+        lyricsTextarea.value = '[Verse]\n\n[Chorus]\n\n[Bridge]\n\n[Outro]';
+    } else {
+        lyricsTextarea.value = raw
+            .replace(/\r\n/g, '\n')
+            .replace(/\bverse\b/gi, '[Verse]')
+            .replace(/\bchorus\b/gi, '[Chorus]')
+            .replace(/\bbridge\b/gi, '[Bridge]')
+            .replace(/\boutro\b/gi, '[Outro]')
+            .replace(/\n{3,}/g, '\n\n');
+    }
+    updatePrompt();
+    pushState();
+}
+
+function runQualityCheck() {
+    const text = editorTextarea.value.trim();
+    const issues = [];
+    let score = 100;
+
+    if (!text) {
+        issues.push('Prompt boş.');
+        score -= 60;
+    }
+    if (!genreSelect.value && !text.match(/pop|rock|blues|jazz|rap|cinematic|electronic/i)) {
+        issues.push('Müzik türü net değil.');
+        score -= 15;
+    }
+    if (!moodSelect.value && !text.match(/happy|sad|dark|epic|romantic|energetic|melancholic|chill/i)) {
+        issues.push('Ruh hali eklemek sonucu daha hedefli yapar.');
+        score -= 10;
+    }
+    if (selectedInstruments.size === 0 && !text.match(/guitar|piano|drum|bass|synth|violin|oud|ney|baglama/i)) {
+        issues.push('En az birkaç enstrüman seçmek iyi olur.');
+        score -= 10;
+    }
+    if (text.length > 1200) {
+        issues.push('Prompt biraz uzun; “Kısalt” ile sadeleştirebilirsin.');
+        score -= 10;
+    }
+    if (vocalsSelect.value === 'Instrumental (No Vocals)' && (vocalNuancesSelect.value || lyricsTextarea.value.trim())) {
+        issues.push('Enstrümantal seçiliyken vokal detayı veya söz var.');
+        score -= 20;
+    }
+    if (hasDuplicateCommaParts(text)) {
+        issues.push('Tekrarlanan etiketler var; kısaltma temizleyebilir.');
+        score -= 7;
+    }
+
+    score = Math.max(0, Math.min(100, score));
+    const level = score >= 80 ? 'good' : score >= 55 ? 'warn' : 'bad';
+    qualityPanel.className = `quality-panel ${level}`;
+    qualityPanel.innerHTML = `
+        <strong>Kalite puanı: ${score}/100</strong>
+        ${issues.length ? `<ul>${issues.map(issue => `<li>${issue}</li>`).join('')}</ul>` : '<span>Gayet net görünüyor. Suno için kullanıma hazır.</span>'}
+    `;
+}
+
+function hasDuplicateCommaParts(text) {
+    const parts = text
+        .split(',')
+        .map(part => part.trim().toLowerCase())
+        .filter(Boolean);
+    return new Set(parts).size !== parts.length;
 }
 
 // Run Init

@@ -228,15 +228,29 @@
                     <input type="text" id="custom-desc"
                         placeholder="Örn: Epik bir giriş ile başlasın, nakaratta yükselsin...">
                 </div>
+
+                <!-- Lyrics Builder -->
+                <div class="control-group full-width lyrics-builder">
+                    <div class="section-title-row">
+                        <label for="lyrics-textarea">Şarkı Sözü / Lyrics (Opsiyonel)</label>
+                        <button id="format-lyrics-btn" class="mini-btn" type="button">🎼 Formatla</button>
+                    </div>
+                    <textarea id="lyrics-textarea"
+                        placeholder="[Verse]\nBirinci bölüm sözleri...\n\n[Chorus]\nNakarat sözleri..."></textarea>
+                    <small class="helper-text">İstersen Verse / Chorus / Bridge / Outro bloklarıyla Suno'ya hazır söz ekleyebilirsin.</small>
+                </div>
             </div>
 
             <div class="result-section">
                 <div class="result-header">
                     <h2>Profesyonel Prompt Editörü</h2>
                     <div class="editor-tools">
+                        <button id="enhance-btn" class="tool-btn" title="Eksikleri Otomatik Tamamla">🪄 Tamamla</button>
                         <button id="magic-quality-btn" class="tool-btn" title="Kalite Etiketleri Ekle">✨ Kalite</button>
                         <button id="magic-vibe-btn" class="tool-btn" title="Rastgele Vibe">🎭 Vibe</button>
                         <button id="shorten-btn" class="tool-btn" title="Kısalt">✂️ Kısalt</button>
+                        <button id="english-mode-btn" class="tool-btn toggle-tool" title="İngilizce çıktı modunu aç/kapat">🌍 EN</button>
+                        <button id="quality-check-btn" class="tool-btn" title="Prompt Kalite Kontrolü">✅ Kontrol</button>
                     </div>
                 </div>
 
@@ -258,12 +272,42 @@
                             <span class="icon">📋</span> Suno İçin Kopyala
                         </button>
 
+                        <button id="save-favorite-btn" class="btn-secondary" title="Favorilere Ekle">
+                            <span class="icon">⭐</span>
+                        </button>
+
                         <button id="clear-btn" class="btn-danger" title="Temizle">
                             <span class="icon">🗑️</span>
                         </button>
                     </div>
                 </div>
+                <div class="editor-meta">
+                    <span id="char-count">0 karakter</span>
+                    <span id="english-mode-status">Çıktı: Hibrit / TR destekli</span>
+                </div>
+                <div id="quality-panel" class="quality-panel" aria-live="polite">
+                    <strong>Kalite kontrolü hazır.</strong>
+                    <span>Promptu oluşturup “Kontrol” butonuna basabilirsin.</span>
+                </div>
                 <div id="copy-feedback" class="feedback-msg">Kopyalandı!</div>
+            </div>
+
+            <div class="library-grid">
+                <section class="library-card">
+                    <div class="library-header">
+                        <h3>Prompt Geçmişi</h3>
+                        <button id="clear-history-btn" class="mini-btn" type="button">Temizle</button>
+                    </div>
+                    <div id="prompt-history-list" class="library-list empty-state">Henüz geçmiş yok.</div>
+                </section>
+
+                <section class="library-card">
+                    <div class="library-header">
+                        <h3>Favoriler</h3>
+                        <span class="library-hint">⭐ ile kaydet</span>
+                    </div>
+                    <div id="favorites-list" class="library-list empty-state">Henüz favori yok.</div>
+                </section>
             </div>
         </main>
 
